@@ -1,0 +1,8 @@
+{
+  "name": "检验截图整理助手·批量版",
+  "short_name": "检验整理",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f7f5",
+  "theme_color": "#145c50"
+}

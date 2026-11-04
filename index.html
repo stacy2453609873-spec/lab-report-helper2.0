@@ -1,0 +1,89 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#145c50"><link rel="manifest" href="manifest.webmanifest"><title>检验截图整理助手·批量版</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;color:#182522;background:#f3f7f5}*{box-sizing:border-box}body{margin:0;padding-bottom:24px}header{background:#145c50;color:white;padding:20px 16px}h1{font-size:20px;margin:0 0 5px}header p{font-size:12px;line-height:1.6;margin:0}main{max-width:800px;margin:auto;padding:12px}.card{background:white;border:1px solid #dce7e2;border-radius:14px;padding:14px;margin-bottom:12px}h2{font-size:16px;margin:0 0 10px}.hint{font-size:12px;color:#607169;line-height:1.6}label{display:block;font-size:13px;font-weight:650;margin:9px 0 5px}input,button{font:inherit}input[type=text],input[type=number]{width:100%;padding:11px;border:1px solid #cbd9d3;border-radius:9px;font-size:16px}input[type=file]{width:100%;padding:8px 0}button{border:0;border-radius:10px;padding:11px 13px;font-weight:700}.primary{background:#145c50;color:white}.secondary{background:#e7f1ed;color:#145c50}.danger{background:#fff0ed;color:#a33d2d}button:disabled{opacity:.45}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions button{flex:1}.status{font-size:12px;white-space:pre-wrap;color:#245d50;margin-top:8px}.progress{height:7px;background:#e7efeb;border-radius:10px;overflow:hidden;margin-top:8px}.bar{height:100%;width:0;background:#16866e}.patient{border:1px solid #dce7e2;border-radius:11px;padding:11px;margin-top:9px}.head{display:flex;justify-content:space-between;gap:8px;align-items:center}.badge{font-size:11px;border-radius:20px;padding:3px 8px;background:#fff1d8;color:#865b12}.ok{background:#e1f3e9;color:#1b6b48}.bad{background:#ffebe8;color:#a33d2d}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px 4px;border-bottom:1px solid #e7eeea;text-align:left;vertical-align:middle}td input{width:100%;min-width:75px;padding:7px;border:1px solid #d4dfda;border-radius:7px;font-size:14px}.small{font-size:11px;color:#738078;line-height:1.5}summary{font-weight:650;font-size:13px;cursor:pointer}@media(max-width:430px){.grid{grid-template-columns:1fr}}footer{max-width:800px;margin:auto;padding:0 14px;font-size:11px;color:#66766f;line-height:1.6}
+</style></head><body><header><h1>检验截图整理助手·批量版</h1><p>一次导入研究Excel，逐位患者收集截图，最后统一导出一份总表。识别和表格处理在当前浏览器本地进行。</p></header><main>
+<section class="card"><h2>① 导入研究总表（只需一次）</h2><label>选择原始研究Excel（.xls / .xlsx）</label><input id="book" type="file" accept=".xls,.xlsx"><div id="bookInfo" class="hint">请先备份原始表格。建议第2行为字段标题，患者数据从第3行开始。</div></section>
+<section class="card"><h2>② 添加一位患者</h2><div class="grid"><div><label>研究编号</label><input id="pid" type="text" placeholder="例如 107"></div><div><label>Excel实际数据行号</label><input id="row" type="number" min="3" placeholder="例如 3"></div></div><label>选择该患者的检验报告截图（可多张）</label><input id="imgs" type="file" accept="image/*" multiple><p class="hint">一次只选择同一位患者的报告。先遮盖姓名、病案号、身份证号、条码和二维码。不要上传未经授权的患者资料。</p><button id="go" class="primary" style="width:100%" disabled>识别并加入患者清单</button><div class="progress"><div id="bar" class="bar"></div></div><div id="status" class="status"></div></section>
+<section class="card"><h2>③ 患者清单与数据核对</h2><p class="hint">每位患者识别后会加入下方清单。请逐位展开核对；同一指标重复出现时，必须按研究方案处理并删除不采用的候选项，程序不会替你选择。</p><div id="patients"><p class="hint">尚未添加患者。</p></div><div class="actions"><button id="export" class="primary" disabled>全部核对完成，导出总Excel</button><button id="clear" class="danger" disabled>清空本次收集</button></div><div id="outStatus" class="status"></div></section>
+<section class="card"><h2>重要注意</h2><ul class="hint" style="padding-left:18px"><li>每个OCR结果必须对照原报告人工核验，尤其小数点、负号、单位和参考范围。</li><li>同一患者同一字段有重复记录时，阻止确认/导出；按研究方案决定后删除不采用的候选项。</li><li>Excel行号由你确认，程序不会通过姓名或病案号猜测患者。</li><li>缺失值不自动填0；程序不决定入院首次、24小时内或住院最差值。</li><li>首次联网加载OCR/Excel组件；截图和Excel由浏览器本地处理。请遵守医院数据安全规定。</li><li>患者清单暂存在当前页面内。不要刷新或关闭页面，直到导出完成；建议分批处理并及时导出备份。</li></ul></section></main><footer>这是研究数据整理辅助原型，尚未针对你医院报告版式完成验证。正式研究数据必须人工核验。</footer>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script>
+const $=id=>document.getElementById(id);let wb=null,sheet=null,patients=[],files=[],worker=null;
+const fieldAliases = [
+["IL-6",["il-6","白介素6","白细胞介素6","白介素-6"]],
+["PCT/ng/L",["pct","降钙素原","降钙素原测定"]],
+["CRP mg/L",["crp","c反应蛋白","c-反应蛋白"]],
+["WBC/10*9/L",["wbc","白细胞计数","白细胞"]],
+["Neut%",["neut%","中性粒细胞百分比","中性粒细胞%","中性粒细胞比率"]],
+["Lymph%",["lymph%","淋巴细胞百分比","淋巴细胞%","淋巴细胞比率"]],
+["Mono%",["mono%","单核细胞百分比","单核细胞%"]],
+["Eos/%",["eos%","嗜酸性粒细胞百分比","嗜酸性粒细胞%"]],
+["Baso%",["baso%","嗜碱性粒细胞百分比","嗜碱性粒细胞%"]],
+["Neut#/10*9/L",["neut#","中性粒细胞绝对值","中性粒细胞计数"]],
+["Lymph#/10*9/L",["lymph#","淋巴细胞绝对值","淋巴细胞计数"]],
+["Mono#/10*9/L",["mono#","单核细胞绝对值","单核细胞计数"]],
+["Eos#/10*9/L",["eos#","嗜酸性粒细胞绝对值","嗜酸性粒细胞计数"]],
+["Baso#/10*9/L",["baso#","嗜碱性粒细胞绝对值","嗜碱性粒细胞计数"]],
+["RBC/10*12/L",["rbc","红细胞计数","红细胞"]],
+["Hb/g/L",["hb","血红蛋白","血红蛋白浓度"]],
+["PLT/10*9/L",["plt","血小板计数","血小板"]],
+["TP/g/L",["tp","总蛋白"]],
+["ALB/g/L",["alb","白蛋白","白蛋白浓度"]],
+["GLB/g/L",["glb","球蛋白"]],
+["A/G",["a/g","白球比"]],
+["ALT/U/L",["alt","丙氨酸氨基转移酶","谷丙转氨酶"]],
+["AST/U/L",["ast","天门冬氨酸氨基转移酶","谷草转氨酶"]],
+["TBLL/umol/L",["tbil","总胆红素"]],
+["DBIL/umol/L",["dbil","直接胆红素"]],
+["IBIL/umol/L",["ibil","间接胆红素"]],
+["ALP/U/L",["alp","碱性磷酸酶"]],
+["GGT/U/L",["ggt","γ-谷氨酰转移酶","谷氨酰转移酶"]],
+["CHO/mmol/L",["cho","总胆固醇"]],
+["TG/mmol/L",["tg","甘油三酯"]],
+["LD/U/L",["ld","乳酸脱氢酶"]],
+["BUN/mmol/L",["bun","尿素氮","尿素"]],
+["Crea/umol/L",["crea","肌酐","肌酸酐"]],
+["UA/umol/L",["ua","尿酸"]],
+["CK/U/L",["ck","肌酸激酶"]],
+["CKMB/U/L",["ck-mb","ckmb","肌酸激酶同工酶"]],
+["LDH/U/L",["ldh","乳酸脱氢酶"]],
+["a-HBDH/U/L",["α-hbdh","a-hbdh","α羟丁酸脱氢酶"]],
+["m-AST/U/L",["m-ast","线粒体ast"]],
+["hs-cTnI/ng/ml",["hs-ctni","高敏肌钙蛋白i","肌钙蛋白i"]],
+["Myb/ng/ml",["myb","肌红蛋白"]],
+["hs-CRP/mg/L",["hs-crp","超敏c反应蛋白"]],
+["ntproBNP/pg/ml",["nt-probnp","ntprobnp","n端脑钠肽前体"]],
+["BNP/ng/L",["bnp","脑钠肽"]],
+["PT-S/s",["pt-s","凝血酶原时间"]],
+["PT-INR",["pt-inr","inr"]],
+["PT-%",["pt-%","凝血酶原活动度"]],
+["TT/s",["tt","凝血酶时间"]],
+["APTT/s",["aptt","活化部分凝血活酶时间"]],
+["FIB/g/L",["fib","纤维蛋白原"]],
+["FDP/ug/ml",["fdp","纤维蛋白降解产物"]],
+["D-Dimer/ug/ml",["d-dimer","d二聚体","d-二聚体"]],
+["AT-III",["at-iii","抗凝血酶iii","抗凝血酶Ⅲ"]],
+["Pro-GRP/pg/ml",["pro-grp","progrp"]],
+["SCC/ng/L",["scc","鳞状细胞癌相关抗原"]],
+["CEA/ng/ml",["cea","癌胚抗原"]],
+["NSE/ng/ml",["nse","神经元特异性烯醇化酶"]],
+["CYFRA21-1/ng/ml",["cyfra21-1","cyfra21","细胞角蛋白19片段"]],
+["PH",["ph","酸碱度"]],
+["PCO2(mmHg)",["pco2","二氧化碳分压"]],
+["PO2(mmHg)",["po2","氧分压"]],
+["Lac(mmol/L)",["lac","乳酸"]],
+["HCO3-(mmol/L)",["hco3-","碳酸氢根"]],
+["HCO3std(mmol/L)",["hco3std","标准碳酸氢根"]],
+["BE(B)(mmol/L)",["be(b)","be-b","剩余碱"]],
+["SO2c(%)",["so2c","氧饱和度","血氧饱和度"]]
+];
+const norm=s=>String(s||'').toLowerCase().replace(/\s/g,'').replace(/[：:]/g,'').replace(/[（）()]/g,'');const nums=s=>(s.match(/[-+]?\d+(?:[.,]\d+)?/g)||[]).map(x=>x.replace(',','.'));const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function parseLine(line){let f=null,n=norm(line);for(const [field,aa] of fieldAliases){if(aa.some(a=>n.includes(norm(a)))){f=field;break}}if(!f)return null;let v=nums(line);return {field:f,value:v[0]||'',line,issue:v.length>1?'含多个数字，核对结果列':'待核对'}}
+$('book').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{wb=XLSX.read(await f.arrayBuffer(),{type:'array'});sheet=wb.SheetNames[0];let ws=wb.Sheets[sheet],r=XLSX.utils.decode_range(ws['!ref']||'A1');$('bookInfo').textContent=`已读取 ${f.name}；工作表 ${sheet}；${r.e.c+1}列。请确认第2行为标题行。`;}catch(err){wb=null;$('bookInfo').textContent='读取失败：'+err.message}};
+$('imgs').onchange=e=>{files=[...e.target.files];$('go').disabled=!files.length;$('status').textContent=`已选择${files.length}张图片`};
+$('go').onclick=async()=>{let id=$('pid').value.trim(),row=Number($('row').value);if(!wb){$('status').textContent='请先导入研究Excel';return}if(!id||!Number.isInteger(row)||row<3||!files.length){$('status').textContent='请填写研究编号、Excel行号并选择截图';return}if(patients.some(p=>p.id===id||p.row===row)){$('status').textContent='研究编号或Excel行号已存在，请检查';return}$('go').disabled=true;try{worker=await Tesseract.createWorker('chi_sim+eng',1,{logger:m=>{if(m.status==='recognizing text')$('bar').style.width=Math.round(m.progress*100)+'%'}});let items=[],raw=[];for(let i=0;i<files.length;i++){$('status').textContent=`正在识别${id}号患者：${i+1}/${files.length}`;let res=await worker.recognize(files[i]);let lines=(res.data.text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);raw.push(...lines);lines.forEach(l=>{let x=parseLine(l);if(x)items.push(x)})}await worker.terminate();worker=null;if(!items.length){$('status').textContent='没有识别到已配置的指标，请尝试清晰截图';return}patients.push({id,row,items,raw,confirmed:false});files=[];$('imgs').value='';$('pid').value='';$('row').value='';$('go').disabled=true;render();$('status').textContent=`${id}号患者已加入，识别到${items.length}条候选。请展开核对。`}catch(err){if(worker){try{await worker.terminate()}catch(e){}worker=null}$('status').textContent='识别失败：'+err.message}finally{$('go').disabled=!$('imgs').files.length}};
+function render(){let root=$('patients');if(!patients.length){root.innerHTML='<p class="hint">尚未添加患者。</p>';$('export').disabled=true;$('clear').disabled=true;return}root.innerHTML=patients.map((p,pi)=>{let dup=[...new Set(p.items.filter(x=>p.items.filter(y=>y.field===x.field).length>1).map(x=>x.field))];return `<div class="patient"><div class="head"><b>患者 ${esc(p.id)} · Excel第${p.row}行</b><span class="badge ${p.confirmed?'ok':dup.length?'bad':''}">${p.confirmed?'已核对':dup.length?'重复待处理':'待核对'}</span></div><details open><summary>${p.items.length}条候选结果：点击展开</summary><div class="scroll"><table><thead><tr><th>字段及OCR原文</th><th>候选值</th><th>状态</th><th>操作</th></tr></thead><tbody>${p.items.map((x,i)=>`<tr><td>${esc(x.field)}<div class="small">${esc(x.line)}</div></td><td><input data-p="${pi}" data-i="${i}" value="${esc(x.value)}"></td><td>${esc(x.issue)}${p.items.filter(y=>y.field===x.field).length>1?' <span class="badge bad">重复</span>':''}</td><td><button class="danger" data-del="${pi},${i}" style="padding:6px">删</button></td></tr>`).join('')}</tbody></table></div><div class="actions"><button class="secondary" data-add="${pi}">手动添加指标</button><button class="primary" data-ok="${pi}">标记已核对</button></div><details><summary>查看OCR原文</summary><pre class="small" style="white-space:pre-wrap">${esc(p.raw.join('\n'))}</pre></details></details></div>`}).join('');$('export').disabled=false;$('clear').disabled=false;
+root.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{let [p,i]=b.dataset.del.split(',').map(Number);patients[p].items.splice(i,1);patients[p].confirmed=false;render()});root.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{let pi=+b.dataset.add,ws=wb.Sheets[sheet],r=XLSX.utils.decode_range(ws['!ref']||'A1'),hs=[];for(let c=0;c<=r.e.c;c++)hs.push(ws[XLSX.utils.encode_cell({r:1,c})]?.v);let f=prompt('输入与Excel第2行标题完全一致的字段名');if(!f)return;if(!hs.includes(f)){alert('字段名不在Excel标题中');return}let v=prompt('输入对照原报告核对后的数值');if(v===null)return;patients[pi].items.push({field:f,value:v,line:'手动添加',issue:'手动输入'});patients[pi].confirmed=false;render()});root.querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>{let pi=+b.dataset.ok,p=patients[pi];root.querySelectorAll(`input[data-p="${pi}"]`).forEach(el=>p.items[+el.dataset.i].value=el.value.trim());let count={};p.items.forEach(x=>count[x.field]=(count[x.field]||0)+1);let dup=Object.keys(count).filter(k=>count[k]>1);if(dup.length){alert('这些字段仍重复，请按研究方案确定后删除不采用的记录：'+dup.join('、'));return}if(p.items.some(x=>!x.value)){alert('有空值，请删除该项或补录核对值');return}p.confirmed=true;render()})}
+$('export').onclick=()=>{if(!wb)return;document.querySelectorAll('#patients input[data-p]').forEach(el=>{let p=+el.dataset.p,i=+el.dataset.i;if(patients[p]?.items[i])patients[p].items[i].value=el.value.trim()});let un=patients.filter(p=>!p.confirmed);if(un.length){alert('尚有患者未标记已核对：'+un.map(p=>p.id).join('、'));return}let ws=wb.Sheets[sheet],rg=XLSX.utils.decode_range(ws['!ref']||'A1'),headers=[];for(let c=0;c<=rg.e.c;c++)headers.push(ws[XLSX.utils.encode_cell({r:1,c})]?.v);let plan=[],errors=[];for(let p of patients){let seen=new Set();for(let x of p.items){if(seen.has(x.field)){errors.push(p.id+'号：'+x.field+'重复');continue}seen.add(x.field);let c=headers.indexOf(x.field);if(c<0){errors.push(p.id+'号：找不到字段'+x.field);continue}plan.push({r:p.row-1,c,value:x.value})}}if(errors.length){alert(errors.join('\n'));return}for(let x of plan)ws[XLSX.utils.encode_cell({r:x.r,c:x.c})]={t:'s',v:x.value};rg.e.r=Math.max(rg.e.r,...patients.map(p=>p.row-1));ws['!ref']=XLSX.utils.encode_range(rg);XLSX.writeFile(wb,'重症肺炎研究总表_批量更新.xlsx');$('outStatus').textContent=`已导出总表：${patients.length}位患者，${plan.length}个指标。请重新打开检查并保留原始备份。`};
+$('clear').onclick=()=>{if(confirm('确定清空当前页面暂存的所有患者数据？')){patients=[];render();$('outStatus').textContent='已清空'}};
+if('serviceWorker'in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script></body></html>
